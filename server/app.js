@@ -1,18 +1,21 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var session = require('express-session');
+'use strict';
 
-var config = require('./config/index');
-var db = require('./db/db');
+const express = require('express');
+const path = require('path');
+const favicon = require('serve-favicon');
+const logger = require('morgan');
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const session = require('express-session');
 
-var index = require('./routes/index');
-var users = require('./routes/users');
+const config = require('./config/index');
+const db = require('./db/db');
 
-var app = express();
+const index = require('./routes/index');
+const users = require('./routes/users');
+const chat = require('./routes/chat');
+
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -30,11 +33,13 @@ app.use('/doc', express.static(path.join(__dirname, 'doc')));
 
 // Session
 if (config.isProduction()) {
+  let MongoStore = require('connect-mongo')(session);
+  let dbUri = config.mongo.uri + config.mongo.db;
   app.use(session({
     secret: config.secret,
+    store: new MongoStore({ url: dbUri }),
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true }
+    saveUninitialized: true
   }));
 } else {
   app.use(session({
@@ -47,10 +52,11 @@ if (config.isProduction()) {
 
 app.use('/', index);
 app.use('/users', users);
+app.use('/chat', chat);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  var err = new Error('Not Found');
+  let err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
